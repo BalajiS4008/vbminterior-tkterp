@@ -1,0 +1,1 @@
+const fs=require("fs");const p="src/pages/tickets/TicketListPage.tsx";fs.writeFileSync(p,`

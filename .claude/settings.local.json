@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm create:*)",
+      "Bash(npx --yes create-vite@latest temp-app --template react-ts)",
+      "Bash(npm install:*)",
+      "Bash(cat:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npm run build:*)",
+      "Bash(timeout 10 npm run dev:*)",
+      "Bash(dir /b \"e:\\\\Tech\\\\Solutions\\\\ticket-management\\\\src\\\\pages\")",
+      "Bash(timeout:*)",
+      "Bash(dir:*)",
+      "Bash(npx tsc:*)",
+      "Bash(node:*)"
+    ]
+  }
+}

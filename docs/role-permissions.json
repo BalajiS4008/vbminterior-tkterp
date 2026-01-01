@@ -1,0 +1,310 @@
+{
+  "roles": {
+    "admin": {
+      "name": {
+        "en": "Administrator",
+        "ta": "நிர்வாகி"
+      },
+      "description": {
+        "en": "Full access to all features and settings",
+        "ta": "அனைத்து அம்சங்கள் மற்றும் அமைப்புகளுக்கு முழு அணுகல்"
+      },
+      "permissions": [
+        "projects.create",
+        "projects.edit",
+        "projects.delete",
+        "projects.view",
+        "tickets.create",
+        "tickets.edit",
+        "tickets.delete",
+        "tickets.view",
+        "tickets.assign",
+        "media.upload",
+        "media.delete",
+        "quotations.create",
+        "quotations.edit",
+        "quotations.delete",
+        "quotations.view",
+        "invoices.create",
+        "invoices.edit",
+        "invoices.delete",
+        "invoices.view",
+        "invoices.download",
+        "users.manage",
+        "settings.manage",
+        "reports.view"
+      ]
+    },
+    "supervisor": {
+      "name": {
+        "en": "Project Manager / Supervisor",
+        "ta": "திட்ட மேலாளர் / கண்காணிப்பாளர்"
+      },
+      "description": {
+        "en": "Manage projects and tickets, view financial documents",
+        "ta": "திட்டங்கள் மற்றும் டிக்கெட்டுகளை நிர்வகி, நிதி ஆவணங்களைக் காண்"
+      },
+      "permissions": [
+        "projects.create",
+        "projects.edit",
+        "projects.view",
+        "tickets.create",
+        "tickets.edit",
+        "tickets.view",
+        "tickets.assign",
+        "media.upload",
+        "quotations.view",
+        "invoices.view",
+        "invoices.download",
+        "reports.view"
+      ]
+    },
+    "worker": {
+      "name": {
+        "en": "Worker / Technician",
+        "ta": "தொழிலாளி / தொழில்நுட்பவியலாளர்"
+      },
+      "description": {
+        "en": "View assigned projects and update ticket status",
+        "ta": "ஒதுக்கப்பட்ட திட்டங்களைக் காண்க மற்றும் டிக்கெட் நிலையைப் புதுப்பிக்கவும்"
+      },
+      "permissions": [
+        "projects.view",
+        "tickets.view",
+        "tickets.edit",
+        "media.upload"
+      ]
+    },
+    "client": {
+      "name": {
+        "en": "Client",
+        "ta": "வாடிக்கையாளர்"
+      },
+      "description": {
+        "en": "View-only access to project status and invoices",
+        "ta": "திட்ட நிலை மற்றும் விலைப்பட்டிகளுக்கு பார்வை மட்டும் அணுகல்"
+      },
+      "permissions": [
+        "projects.view",
+        "tickets.view",
+        "quotations.view",
+        "invoices.view",
+        "invoices.download"
+      ]
+    }
+  },
+  "permissions": {
+    "projects.create": {
+      "name": {
+        "en": "Create Projects",
+        "ta": "திட்டங்களை உருவாக்கு"
+      },
+      "category": "projects"
+    },
+    "projects.edit": {
+      "name": {
+        "en": "Edit Projects",
+        "ta": "திட்டங்களைத் திருத்து"
+      },
+      "category": "projects"
+    },
+    "projects.delete": {
+      "name": {
+        "en": "Delete Projects",
+        "ta": "திட்டங்களை நீக்கு"
+      },
+      "category": "projects"
+    },
+    "projects.view": {
+      "name": {
+        "en": "View Projects",
+        "ta": "திட்டங்களைக் காண்"
+      },
+      "category": "projects"
+    },
+    "tickets.create": {
+      "name": {
+        "en": "Create Tickets",
+        "ta": "டிக்கெட்டுகளை உருவாக்கு"
+      },
+      "category": "tickets"
+    },
+    "tickets.edit": {
+      "name": {
+        "en": "Edit Tickets",
+        "ta": "டிக்கெட்டுகளைத் திருத்து"
+      },
+      "category": "tickets"
+    },
+    "tickets.delete": {
+      "name": {
+        "en": "Delete Tickets",
+        "ta": "டிக்கெட்டுகளை நீக்கு"
+      },
+      "category": "tickets"
+    },
+    "tickets.view": {
+      "name": {
+        "en": "View Tickets",
+        "ta": "டிக்கெட்டுகளைக் காண்"
+      },
+      "category": "tickets"
+    },
+    "tickets.assign": {
+      "name": {
+        "en": "Assign Tickets",
+        "ta": "டிக்கெட்டுகளை ஒதுக்கு"
+      },
+      "category": "tickets"
+    },
+    "media.upload": {
+      "name": {
+        "en": "Upload Media",
+        "ta": "மீடியாவை பதிவேற்று"
+      },
+      "category": "media"
+    },
+    "media.delete": {
+      "name": {
+        "en": "Delete Media",
+        "ta": "மீடியாவை நீக்கு"
+      },
+      "category": "media"
+    },
+    "quotations.create": {
+      "name": {
+        "en": "Create Quotations",
+        "ta": "மேற்கோள்களை உருவாக்கு"
+      },
+      "category": "quotations"
+    },
+    "quotations.edit": {
+      "name": {
+        "en": "Edit Quotations",
+        "ta": "மேற்கோள்களைத் திருத்து"
+      },
+      "category": "quotations"
+    },
+    "quotations.delete": {
+      "name": {
+        "en": "Delete Quotations",
+        "ta": "மேற்கோள்களை நீக்கு"
+      },
+      "category": "quotations"
+    },
+    "quotations.view": {
+      "name": {
+        "en": "View Quotations",
+        "ta": "மேற்கோள்களைக் காண்"
+      },
+      "category": "quotations"
+    },
+    "invoices.create": {
+      "name": {
+        "en": "Create Invoices",
+        "ta": "விலைப்பட்டிகளை உருவாக்கு"
+      },
+      "category": "invoices"
+    },
+    "invoices.edit": {
+      "name": {
+        "en": "Edit Invoices",
+        "ta": "விலைப்பட்டிகளைத் திருத்து"
+      },
+      "category": "invoices"
+    },
+    "invoices.delete": {
+      "name": {
+        "en": "Delete Invoices",
+        "ta": "விலைப்பட்டிகளை நீக்கு"
+      },
+      "category": "invoices"
+    },
+    "invoices.view": {
+      "name": {
+        "en": "View Invoices",
+        "ta": "விலைப்பட்டிகளைக் காண்"
+      },
+      "category": "invoices"
+    },
+    "invoices.download": {
+      "name": {
+        "en": "Download Invoices",
+        "ta": "விலைப்பட்டிகளைப் பதிவிறக்கு"
+      },
+      "category": "invoices"
+    },
+    "users.manage": {
+      "name": {
+        "en": "Manage Users",
+        "ta": "பயனர்களை நிர்வகி"
+      },
+      "category": "admin"
+    },
+    "settings.manage": {
+      "name": {
+        "en": "Manage Settings",
+        "ta": "அமைப்புகளை நிர்வகி"
+      },
+      "category": "admin"
+    },
+    "reports.view": {
+      "name": {
+        "en": "View Reports",
+        "ta": "அறிக்கைகளைக் காண்"
+      },
+      "category": "reports"
+    }
+  },
+  "permissionCategories": {
+    "projects": {
+      "name": {
+        "en": "Projects",
+        "ta": "திட்டங்கள்"
+      },
+      "order": 1
+    },
+    "tickets": {
+      "name": {
+        "en": "Tickets",
+        "ta": "டிக்கெட்டுகள்"
+      },
+      "order": 2
+    },
+    "media": {
+      "name": {
+        "en": "Media",
+        "ta": "மீடியா"
+      },
+      "order": 3
+    },
+    "quotations": {
+      "name": {
+        "en": "Quotations",
+        "ta": "மேற்கோள்கள்"
+      },
+      "order": 4
+    },
+    "invoices": {
+      "name": {
+        "en": "Invoices",
+        "ta": "விலைப்பட்டிகள்"
+      },
+      "order": 5
+    },
+    "reports": {
+      "name": {
+        "en": "Reports",
+        "ta": "அறிக்கைகள்"
+      },
+      "order": 6
+    },
+    "admin": {
+      "name": {
+        "en": "Administration",
+        "ta": "நிர்வாகம்"
+      },
+      "order": 7
+    }
+  }
+}

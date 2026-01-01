@@ -1,0 +1,347 @@
+import React, { useState, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import {
+  Box,
+  Card,
+  CardContent,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TablePagination,
+  IconButton,
+  TextField,
+  InputAdornment,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  Chip,
+} from '@mui/material';
+import {
+  Search as SearchIcon,
+  MoreVert as MoreIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Visibility as ViewIcon,
+  ConfirmationNumber as TicketIcon,
+} from '@mui/icons-material';
+import { PageHeader, StatusChip, EmptyState, ConfirmDialog } from '../../components/common';
+import { useAuth, useNotification } from '../../contexts';
+import { useDebounce } from '../../hooks';
+import { ROUTES, DEFAULT_PAGE_SIZE } from '../../config/constants';
+import { formatDate } from '../../utils';
+import type { Ticket } from '../../types';
+
+// Mock data
+const mockTickets: Ticket[] = [
+  {
+    id: '1',
+    ticketNumber: 'TKT-202412-0001',
+    title: 'Electrical wiring issue in Block A',
+    description: 'Main electrical panel showing signs of overheating',
+    projectId: '1',
+    location: 'Block A, Floor 2',
+    category: 'electrical',
+    priority: 'high',
+    status: 'open',
+    assignedTo: ['user1'],
+    dueDate: new Date(2024, 11, 25),
+    attachments: [],
+    createdBy: 'admin',
+    createdAt: new Date(2024, 11, 20),
+    updatedAt: new Date(),
+  },
+  {
+    id: '2',
+    ticketNumber: 'TKT-202412-0002',
+    title: 'Plumbing leak in bathroom',
+    description: 'Water leaking from bathroom ceiling',
+    projectId: '1',
+    location: 'Block B, Bathroom',
+    category: 'plumbing',
+    priority: 'critical',
+    status: 'in_progress',
+    assignedTo: ['user2'],
+    dueDate: new Date(2024, 11, 22),
+    attachments: [],
+    createdBy: 'admin',
+    createdAt: new Date(2024, 11, 19),
+    updatedAt: new Date(),
+  },
+  {
+    id: '3',
+    ticketNumber: 'TKT-202412-0003',
+    title: 'Paint touch-up required',
+    description: 'Wall paint peeling in living room area',
+    projectId: '2',
+    location: 'Living Room',
+    category: 'painting',
+    priority: 'low',
+    status: 'pending',
+    assignedTo: ['user1', 'user3'],
+    attachments: [],
+    createdBy: 'supervisor1',
+    createdAt: new Date(2024, 11, 18),
+    updatedAt: new Date(),
+  },
+  {
+    id: '4',
+    ticketNumber: 'TKT-202412-0004',
+    title: 'HVAC not cooling properly',
+    description: 'AC unit in conference room not reaching set temperature',
+    projectId: '3',
+    location: 'Conference Room',
+    category: 'hvac',
+    priority: 'medium',
+    status: 'resolved',
+    assignedTo: ['user2'],
+    attachments: [],
+    createdBy: 'admin',
+    createdAt: new Date(2024, 11, 15),
+    updatedAt: new Date(),
+    resolvedAt: new Date(2024, 11, 20),
+  },
+];
+
+const TicketListPage: React.FC = () => {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { hasPermission } = useAuth();
+  const { showSuccess } = useNotification();
+
+  const [tickets] = useState<Ticket[]>(mockTickets);
+  const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(DEFAULT_PAGE_SIZE);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  const filteredTickets = useMemo(() =>
+    tickets.filter(
+      (ticket) =>
+        ticket.title.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+        ticket.ticketNumber.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+        ticket.location.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
+    ),
+    [tickets, debouncedSearchQuery]
+  );
+
+  const paginatedTickets = useMemo(() =>
+    filteredTickets.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
+    [filteredTickets, page, rowsPerPage]
+  );
+
+  const handleMenuOpen = useCallback((event: React.MouseEvent<HTMLElement>, ticket: Ticket) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedTicket(ticket);
+  }, []);
+
+  const handleMenuClose = useCallback(() => {
+    setAnchorEl(null);
+    setSelectedTicket(null);
+  }, []);
+
+  const handleView = useCallback(() => {
+    if (selectedTicket) {
+      navigate(`/tickets/${selectedTicket.id}`);
+    }
+    handleMenuClose();
+  }, [selectedTicket, navigate, handleMenuClose]);
+
+  const handleEdit = useCallback(() => {
+    if (selectedTicket) {
+      navigate(`/tickets/${selectedTicket.id}/edit`);
+    }
+    handleMenuClose();
+  }, [selectedTicket, navigate, handleMenuClose]);
+
+  const handleDeleteClick = useCallback(() => {
+    setDeleteDialogOpen(true);
+    setAnchorEl(null);
+  }, []);
+
+  const handleDeleteConfirm = useCallback(() => {
+    showSuccess('Ticket deleted successfully');
+    setDeleteDialogOpen(false);
+    setSelectedTicket(null);
+  }, [showSuccess]);
+
+  return (
+    <Box>
+      <PageHeader
+        title={t('tickets.title')}
+        subtitle={`${tickets.length} tickets`}
+        actionLabel={t('tickets.createTicket')}
+        onAction={() => navigate(ROUTES.TICKET_CREATE)}
+      />
+
+      <Card>
+        <CardContent>
+          {/* Search */}
+          <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+            <TextField
+              placeholder={t('common.search')}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              size="small"
+              sx={{ width: 300 }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon color="action" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Box>
+
+          {/* Table */}
+          {filteredTickets.length === 0 ? (
+            <EmptyState
+              icon={TicketIcon}
+              title={t('common.noData')}
+              description="No tickets found matching your criteria"
+              actionLabel={t('tickets.createTicket')}
+              onAction={() => navigate(ROUTES.TICKET_CREATE)}
+            />
+          ) : (
+            <>
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>{t('tickets.ticketNumber')}</TableCell>
+                      <TableCell>{t('tickets.ticketTitle')}</TableCell>
+                      <TableCell>{t('tickets.category')}</TableCell>
+                      <TableCell>{t('tickets.priority')}</TableCell>
+                      <TableCell>{t('common.status')}</TableCell>
+                      <TableCell>{t('tickets.location')}</TableCell>
+                      <TableCell>{t('tickets.dueDate')}</TableCell>
+                      <TableCell align="right">{t('common.actions')}</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {paginatedTickets.map((ticket) => (
+                        <TableRow
+                          key={ticket.id}
+                          hover
+                          sx={{ cursor: 'pointer' }}
+                          onClick={() => navigate(`/tickets/${ticket.id}`)}
+                        >
+                          <TableCell>
+                            <Chip
+                              label={ticket.ticketNumber}
+                              size="small"
+                              variant="outlined"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Box sx={{ fontWeight: 500 }}>{ticket.title}</Box>
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              label={t(`tickets.categories.${ticket.category}`)}
+                              size="small"
+                              variant="outlined"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <StatusChip
+                              type="priority"
+                              value={ticket.priority}
+                              label={t(`tickets.priority_labels.${ticket.priority}`)}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <StatusChip
+                              type="ticket"
+                              value={ticket.status}
+                              label={t(`tickets.status.${ticket.status}`)}
+                            />
+                          </TableCell>
+                          <TableCell>{ticket.location}</TableCell>
+                          <TableCell>
+                            {ticket.dueDate ? formatDate(ticket.dueDate) : '-'}
+                          </TableCell>
+                          <TableCell align="right">
+                            <IconButton
+                              size="small"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMenuOpen(e, ticket);
+                              }}
+                            >
+                              <MoreIcon />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+
+              <TablePagination
+                component="div"
+                count={filteredTickets.length}
+                page={page}
+                onPageChange={(_, newPage) => setPage(newPage)}
+                rowsPerPage={rowsPerPage}
+                onRowsPerPageChange={(e) => {
+                  setRowsPerPage(parseInt(e.target.value, 10));
+                  setPage(0);
+                }}
+              />
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Actions Menu */}
+      <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
+        <MenuItem onClick={handleView}>
+          <ListItemIcon>
+            <ViewIcon fontSize="small" />
+          </ListItemIcon>
+          View
+        </MenuItem>
+        {hasPermission('tickets.edit') && (
+          <MenuItem onClick={handleEdit}>
+            <ListItemIcon>
+              <EditIcon fontSize="small" />
+            </ListItemIcon>
+            {t('common.edit')}
+          </MenuItem>
+        )}
+        {hasPermission('tickets.delete') && (
+          <MenuItem onClick={handleDeleteClick} sx={{ color: 'error.main' }}>
+            <ListItemIcon>
+              <DeleteIcon fontSize="small" color="error" />
+            </ListItemIcon>
+            {t('common.delete')}
+          </MenuItem>
+        )}
+      </Menu>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        title="Delete Ticket"
+        message={`Are you sure you want to delete "${selectedTicket?.ticketNumber}"? This action cannot be undone.`}
+        confirmLabel={t('common.delete')}
+        confirmColor="error"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => {
+          setDeleteDialogOpen(false);
+          setSelectedTicket(null);
+        }}
+      />
+    </Box>
+  );
+};
+
+export default TicketListPage;
