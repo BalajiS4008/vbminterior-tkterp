@@ -410,33 +410,49 @@ export function useRealtimeDashboardStats(userId?: string, role?: string) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Don't set up listeners until we have a valid userId (unless admin)
+    if (!userId && role !== 'admin') {
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
     const unsubscribes: Unsubscribe[] = [];
+
+    const handleError = (source: string) => (err: Error) => {
+      console.error(`Error listening to ${source}:`, err);
+      if (!cancelled) {
+        setLoading(false);
+      }
+    };
 
     // Listen to projects
     const projectsRef = collection(db, 'projects');
     const projectsQuery = role === 'admin'
       ? query(projectsRef)
-      : query(projectsRef, where('assignedUsers', 'array-contains', userId || ''));
+      : query(projectsRef, where('assignedUsers', 'array-contains', userId!));
 
     unsubscribes.push(
       onSnapshot(projectsQuery, (snapshot) => {
+        if (cancelled) return;
         const projects = snapshot.docs.map(d => d.data());
         setStats(prev => ({
           ...prev,
           totalProjects: projects.length,
           activeProjects: projects.filter(p => p.status === 'active').length,
         }));
-      })
+      }, handleError('projects'))
     );
 
     // Listen to tickets
     const ticketsRef = collection(db, 'tickets');
     const ticketsQuery = role === 'admin'
       ? query(ticketsRef)
-      : query(ticketsRef, where('assignedTo', 'array-contains', userId || ''));
+      : query(ticketsRef, where('assignedTo', 'array-contains', userId!));
 
     unsubscribes.push(
       onSnapshot(ticketsQuery, (snapshot) => {
+        if (cancelled) return;
         const tickets = snapshot.docs.map(d => d.data());
         const now = new Date();
         setStats(prev => ({
@@ -450,23 +466,27 @@ export function useRealtimeDashboardStats(userId?: string, role?: string) {
             return dueDate && dueDate < now && !['resolved', 'closed'].includes(t.status);
           }).length,
         }));
-      })
+      }, handleError('tickets'))
     );
 
     // Listen to invoices
     const invoicesRef = collection(db, 'invoices');
     unsubscribes.push(
       onSnapshot(query(invoicesRef, where('status', 'in', ['pending', 'overdue'])), (snapshot) => {
+        if (cancelled) return;
         setStats(prev => ({
           ...prev,
           pendingInvoices: snapshot.docs.length,
         }));
-      })
+      }, handleError('invoices'))
     );
 
-    setLoading(false);
+    if (!cancelled) {
+      setLoading(false);
+    }
 
     return () => {
+      cancelled = true;
       unsubscribes.forEach(unsub => unsub());
     };
   }, [userId, role]);

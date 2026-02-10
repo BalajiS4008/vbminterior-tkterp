@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -14,6 +14,13 @@ import {
   Tab,
   Tabs,
   useTheme,
+  alpha,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -23,13 +30,15 @@ import {
   Email as EmailIcon,
   CalendarMonth as CalendarIcon,
   AttachMoney as MoneyIcon,
+  TrendingUp as TrendingUpIcon,
+  TrendingDown as TrendingDownIcon,
 } from '@mui/icons-material';
 import { PageHeader, StatusChip, LoadingSpinner } from '../../components/common';
 import { useAuth } from '../../contexts';
-import { ROUTES } from '../../config/constants';
+import { ROUTES, EXPENSE_CATEGORY_OPTIONS } from '../../config/constants';
 import { formatDate, formatCurrency, generateInitials } from '../../utils';
-import { projectService, ticketService, invoiceService } from '../../services';
-import type { Project, Ticket, Invoice } from '../../types';
+import { projectService, ticketService, invoiceService, expenseService, paymentService } from '../../services';
+import type { Project, Ticket, Invoice, Expense, Payment, ExpenseCategory } from '../../types';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -72,6 +81,8 @@ const ProjectDetailPage: React.FC = () => {
   const [project, setProject] = useState<Project | null>(null);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -102,6 +113,22 @@ const ProjectDetailPage: React.FC = () => {
           console.error('Error fetching invoices:', invoiceError);
           setInvoices([]);
         }
+
+        try {
+          const expensesData = await expenseService.getByProjectId(id);
+          setExpenses(expensesData);
+        } catch (expenseError) {
+          console.error('Error fetching expenses:', expenseError);
+          setExpenses([]);
+        }
+
+        try {
+          const { payments: paymentsData } = await paymentService.getAll({ projectId: id });
+          setPayments(paymentsData);
+        } catch (paymentError) {
+          console.error('Error fetching payments:', paymentError);
+          setPayments([]);
+        }
       } catch (error) {
         console.error('Error fetching project data:', error);
       } finally {
@@ -111,6 +138,55 @@ const ProjectDetailPage: React.FC = () => {
 
     fetchProjectData();
   }, [id]);
+
+  const financialMetrics = useMemo(() => {
+    const budget = project?.budget || 0;
+    const totalRevenue = invoices.reduce(
+      (sum, inv) => sum + (inv.financialSummary?.grandTotal || 0), 0
+    );
+    const totalExpenses = expenses
+      .filter(e => e.status === 'approved')
+      .reduce((sum, e) => sum + e.totalAmount, 0);
+    const totalPayments = payments.reduce((sum, p) => sum + p.amount, 0);
+    const profitLoss = totalRevenue - totalExpenses;
+    const profitMargin = totalRevenue > 0
+      ? Math.round((profitLoss / totalRevenue) * 1000) / 10
+      : 0;
+    const budgetUtilization = budget > 0
+      ? Math.round((totalExpenses / budget) * 1000) / 10
+      : 0;
+
+    const categoryMap = new Map<ExpenseCategory, { total: number; count: number }>();
+    expenses
+      .filter(e => e.status === 'approved')
+      .forEach(e => {
+        const existing = categoryMap.get(e.category) || { total: 0, count: 0 };
+        categoryMap.set(e.category, {
+          total: existing.total + e.totalAmount,
+          count: existing.count + 1,
+        });
+      });
+    const expensesByCategory = Array.from(categoryMap.entries())
+      .map(([category, data]) => ({ category, ...data }))
+      .sort((a, b) => b.total - a.total);
+
+    return {
+      budget,
+      totalRevenue,
+      totalExpenses,
+      totalPayments,
+      profitLoss,
+      profitMargin,
+      budgetUtilization,
+      expensesByCategory,
+      outstandingAmount: totalRevenue - totalPayments,
+    };
+  }, [project, invoices, expenses, payments]);
+
+  const getCategoryLabel = (category: ExpenseCategory): string => {
+    const option = EXPENSE_CATEGORY_OPTIONS.find(o => o.value === category);
+    return option?.labelEn || category;
+  };
 
   const handleEdit = () => {
     navigate(`/projects/${id}/edit`);
@@ -144,6 +220,140 @@ const ProjectDetailPage: React.FC = () => {
       />
 
       <Grid container spacing={3}>
+        {/* Financial Overview */}
+        <Grid size={{ xs: 12 }}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Financial Overview
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
+                  <Box sx={{
+                    p: 2, borderRadius: 2,
+                    bgcolor: alpha(theme.palette.info.main, 0.08),
+                    border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
+                  }}>
+                    <Typography variant="caption" color="text.secondary">Budget</Typography>
+                    <Typography variant="h6" fontWeight={600} color="info.main">
+                      {formatCurrency(financialMetrics.budget)}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {financialMetrics.budgetUtilization}% utilized
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
+                  <Box sx={{
+                    p: 2, borderRadius: 2,
+                    bgcolor: alpha(theme.palette.success.main, 0.08),
+                    border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`,
+                  }}>
+                    <Typography variant="caption" color="text.secondary">Total Revenue</Typography>
+                    <Typography variant="h6" fontWeight={600} color="success.main">
+                      {formatCurrency(financialMetrics.totalRevenue)}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {invoices.length} invoice{invoices.length !== 1 ? 's' : ''}
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
+                  <Box sx={{
+                    p: 2, borderRadius: 2,
+                    bgcolor: alpha(theme.palette.error.main, 0.08),
+                    border: `1px solid ${alpha(theme.palette.error.main, 0.2)}`,
+                  }}>
+                    <Typography variant="caption" color="text.secondary">Total Expenses</Typography>
+                    <Typography variant="h6" fontWeight={600} color="error.main">
+                      {formatCurrency(financialMetrics.totalExpenses)}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Approved only
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
+                  <Box sx={{
+                    p: 2, borderRadius: 2,
+                    bgcolor: alpha(
+                      financialMetrics.profitLoss >= 0 ? theme.palette.success.main : theme.palette.error.main,
+                      0.08
+                    ),
+                    border: `1px solid ${alpha(
+                      financialMetrics.profitLoss >= 0 ? theme.palette.success.main : theme.palette.error.main,
+                      0.2
+                    )}`,
+                  }}>
+                    <Typography variant="caption" color="text.secondary">Profit / Loss</Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      {financialMetrics.profitLoss >= 0
+                        ? <TrendingUpIcon sx={{ fontSize: 18, color: 'success.main' }} />
+                        : <TrendingDownIcon sx={{ fontSize: 18, color: 'error.main' }} />
+                      }
+                      <Typography
+                        variant="h6"
+                        fontWeight={600}
+                        color={financialMetrics.profitLoss >= 0 ? 'success.main' : 'error.main'}
+                      >
+                        {formatCurrency(Math.abs(financialMetrics.profitLoss))}
+                      </Typography>
+                    </Box>
+                    <Typography variant="caption" color="text.secondary">
+                      {financialMetrics.profitMargin}% margin
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
+                  <Box sx={{
+                    p: 2, borderRadius: 2,
+                    bgcolor: alpha(theme.palette.warning.main, 0.08),
+                    border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
+                  }}>
+                    <Typography variant="caption" color="text.secondary">Payments Received</Typography>
+                    <Typography variant="h6" fontWeight={600} color="warning.main">
+                      {formatCurrency(financialMetrics.totalPayments)}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {formatCurrency(financialMetrics.outstandingAmount)} outstanding
+                    </Typography>
+                  </Box>
+                </Grid>
+              </Grid>
+
+              {financialMetrics.expensesByCategory.length > 0 && (
+                <Box sx={{ mt: 3 }}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Expense Breakdown by Category
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    {financialMetrics.expensesByCategory.map(({ category, total, count }) => (
+                      <Box key={category} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Typography variant="body2" sx={{ minWidth: 140 }}>
+                          {getCategoryLabel(category)}
+                        </Typography>
+                        <Box sx={{ flex: 1 }}>
+                          <LinearProgress
+                            variant="determinate"
+                            value={financialMetrics.totalExpenses > 0 ? (total / financialMetrics.totalExpenses) * 100 : 0}
+                            sx={{ height: 8, borderRadius: 4, bgcolor: alpha(theme.palette.primary.main, 0.1) }}
+                          />
+                        </Box>
+                        <Typography variant="body2" fontWeight={500} sx={{ minWidth: 100, textAlign: 'right' }}>
+                          {formatCurrency(total)}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ minWidth: 30 }}>
+                          ({count})
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                </Box>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+
         {/* Main Content */}
         <Grid size={{ xs: 12, md: 8 }}>
           <Card sx={{ mb: 3 }}>
@@ -188,6 +398,7 @@ const ProjectDetailPage: React.FC = () => {
               <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)}>
                 <Tab label={t('projects.linkedTickets')} />
                 <Tab label={t('projects.linkedInvoices')} />
+                <Tab label={`Expenses (${expenses.length})`} />
               </Tabs>
 
               <TabPanel value={tabValue} index={0}>
@@ -277,6 +488,86 @@ const ProjectDetailPage: React.FC = () => {
                       </Card>
                     ))}
                   </Box>
+                )}
+              </TabPanel>
+
+              <TabPanel value={tabValue} index={2}>
+                {expenses.length === 0 ? (
+                  <Typography variant="body2" color="text.secondary">
+                    No expenses linked to this project yet.
+                  </Typography>
+                ) : (
+                  <TableContainer>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Expense #</TableCell>
+                          <TableCell>Category</TableCell>
+                          <TableCell>Description</TableCell>
+                          <TableCell align="right">Amount</TableCell>
+                          <TableCell>Status</TableCell>
+                          <TableCell>Date</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {expenses.map((expense) => (
+                          <TableRow
+                            key={expense.id}
+                            hover
+                            sx={{ cursor: 'pointer' }}
+                            onClick={() => navigate(`/expenses/${expense.id}`)}
+                          >
+                            <TableCell>
+                              <Typography variant="body2" fontWeight={500} color="primary">
+                                {expense.expenseNumber}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Chip
+                                label={getCategoryLabel(expense.category)}
+                                size="small"
+                                variant="outlined"
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2" noWrap sx={{ maxWidth: 200 }}>
+                                {expense.description}
+                              </Typography>
+                            </TableCell>
+                            <TableCell align="right">
+                              <Typography variant="body2" fontWeight={500}>
+                                {formatCurrency(expense.totalAmount)}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Chip
+                                label={expense.status}
+                                size="small"
+                                sx={{
+                                  bgcolor:
+                                    expense.status === 'approved' ? alpha(theme.palette.success.main, 0.15) :
+                                    expense.status === 'rejected' ? alpha(theme.palette.error.main, 0.15) :
+                                    expense.status === 'submitted' ? alpha(theme.palette.info.main, 0.15) :
+                                    alpha(theme.palette.grey[500], 0.15),
+                                  color:
+                                    expense.status === 'approved' ? theme.palette.success.main :
+                                    expense.status === 'rejected' ? theme.palette.error.main :
+                                    expense.status === 'submitted' ? theme.palette.info.main :
+                                    theme.palette.grey[600],
+                                  textTransform: 'capitalize',
+                                }}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="caption" color="text.secondary">
+                                {formatDate(expense.expenseDate)}
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
                 )}
               </TabPanel>
             </CardContent>
