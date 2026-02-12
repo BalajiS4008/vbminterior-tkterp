@@ -45,6 +45,7 @@ const TicketReport = lazy(() => import('./pages/reports/TicketReport'));
 const SettingsPage = lazy(() => import('./pages/settings/SettingsPage'));
 const NotificationsPage = lazy(() => import('./pages/dashboard/NotificationsPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
+const DevFinancialTestPage = lazy(() => import('./pages/DevFinancialTestPage'));
 
 // Create Query Client
 const queryClient = new QueryClient({
@@ -327,6 +328,9 @@ const App: React.FC = () => {
                     {/* Settings */}
                     <Route path={ROUTES.SETTINGS} element={<SettingsPage />} />
                     <Route path={`${ROUTES.SETTINGS}/*`} element={<SettingsPage />} />
+
+                    {/* Dev Test Page */}
+                    <Route path="/dev/financial-test" element={<DevFinancialTestPage />} />
                   </Route>
 
                   {/* Redirect root to dashboard or login */}
