@@ -144,10 +144,26 @@ const ProjectDetailPage: React.FC = () => {
     const totalRevenue = invoices.reduce(
       (sum, inv) => sum + (inv.financialSummary?.grandTotal || 0), 0
     );
-    const totalExpenses = expenses
+
+    // Calculate expenses by status
+    const approvedExpenses = expenses
       .filter(e => e.status === 'approved')
       .reduce((sum, e) => sum + e.totalAmount, 0);
+    const pendingExpenses = expenses
+      .filter(e => e.status === 'submitted')
+      .reduce((sum, e) => sum + e.totalAmount, 0);
+    const draftExpenses = expenses
+      .filter(e => e.status === 'draft')
+      .reduce((sum, e) => sum + e.totalAmount, 0);
+
+    // Total expenses = all non-rejected expenses
+    const totalExpenses = expenses
+      .filter(e => e.status !== 'rejected')
+      .reduce((sum, e) => sum + e.totalAmount, 0);
+
     const totalPayments = payments.reduce((sum, p) => sum + p.amount, 0);
+
+    // Profit/Loss uses all non-rejected expenses for true picture
     const profitLoss = totalRevenue - totalExpenses;
     const profitMargin = totalRevenue > 0
       ? Math.round((profitLoss / totalRevenue) * 1000) / 10
@@ -156,9 +172,10 @@ const ProjectDetailPage: React.FC = () => {
       ? Math.round((totalExpenses / budget) * 1000) / 10
       : 0;
 
+    // Category breakdown includes all non-rejected expenses
     const categoryMap = new Map<ExpenseCategory, { total: number; count: number }>();
     expenses
-      .filter(e => e.status === 'approved')
+      .filter(e => e.status !== 'rejected')
       .forEach(e => {
         const existing = categoryMap.get(e.category) || { total: 0, count: 0 };
         categoryMap.set(e.category, {
@@ -174,6 +191,9 @@ const ProjectDetailPage: React.FC = () => {
       budget,
       totalRevenue,
       totalExpenses,
+      approvedExpenses,
+      pendingExpenses,
+      draftExpenses,
       totalPayments,
       profitLoss,
       profitMargin,
@@ -268,9 +288,23 @@ const ProjectDetailPage: React.FC = () => {
                     <Typography variant="h6" fontWeight={600} color="error.main">
                       {formatCurrency(financialMetrics.totalExpenses)}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Approved only
-                    </Typography>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25, mt: 0.5 }}>
+                      {financialMetrics.approvedExpenses > 0 && (
+                        <Typography variant="caption" color="success.main">
+                          Approved: {formatCurrency(financialMetrics.approvedExpenses)}
+                        </Typography>
+                      )}
+                      {financialMetrics.pendingExpenses > 0 && (
+                        <Typography variant="caption" color="info.main">
+                          Pending: {formatCurrency(financialMetrics.pendingExpenses)}
+                        </Typography>
+                      )}
+                      {financialMetrics.draftExpenses > 0 && (
+                        <Typography variant="caption" color="text.secondary">
+                          Draft: {formatCurrency(financialMetrics.draftExpenses)}
+                        </Typography>
+                      )}
+                    </Box>
                   </Box>
                 </Grid>
                 <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
