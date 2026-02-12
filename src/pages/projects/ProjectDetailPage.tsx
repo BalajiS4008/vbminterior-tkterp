@@ -13,6 +13,7 @@ import {
   Avatar,
   Tab,
   Tabs,
+  Button,
   useTheme,
   alpha,
   Table,
@@ -32,6 +33,7 @@ import {
   AttachMoney as MoneyIcon,
   TrendingUp as TrendingUpIcon,
   TrendingDown as TrendingDownIcon,
+  Add as AddIcon,
 } from '@mui/icons-material';
 import { PageHeader, StatusChip, LoadingSpinner } from '../../components/common';
 import { useAuth } from '../../contexts';
@@ -436,6 +438,18 @@ const ProjectDetailPage: React.FC = () => {
               </Tabs>
 
               <TabPanel value={tabValue} index={0}>
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+                  {hasPermission('tickets.create') && (
+                    <Button
+                      size="small"
+                      variant="contained"
+                      startIcon={<AddIcon />}
+                      onClick={() => navigate(`/tickets/new?projectId=${id}`)}
+                    >
+                      New Ticket
+                    </Button>
+                  )}
+                </Box>
                 {tickets.length === 0 ? (
                   <Typography variant="body2" color="text.secondary">
                     {t('projects.noTickets') || 'No tickets linked to this project yet.'}
@@ -481,6 +495,18 @@ const ProjectDetailPage: React.FC = () => {
               </TabPanel>
 
               <TabPanel value={tabValue} index={1}>
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+                  {hasPermission('invoices.create') && (
+                    <Button
+                      size="small"
+                      variant="contained"
+                      startIcon={<AddIcon />}
+                      onClick={() => navigate(`/invoices/new?projectId=${id}`)}
+                    >
+                      New Invoice
+                    </Button>
+                  )}
+                </Box>
                 {invoices.length === 0 ? (
                   <Typography variant="body2" color="text.secondary">
                     {t('projects.noInvoices') || 'No invoices linked to this project yet.'}
@@ -526,6 +552,16 @@ const ProjectDetailPage: React.FC = () => {
               </TabPanel>
 
               <TabPanel value={tabValue} index={2}>
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+                  <Button
+                    size="small"
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    onClick={() => navigate(`/expenses/new?projectId=${id}`)}
+                  >
+                    New Expense
+                  </Button>
+                </Box>
                 {expenses.length === 0 ? (
                   <Typography variant="body2" color="text.secondary">
                     No expenses linked to this project yet.

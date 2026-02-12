@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Box,
@@ -79,12 +79,15 @@ const InvoiceFormPage: React.FC = () => {
   const { showSuccess, showError } = useNotification();
   const { userData } = useAuth();
 
+  const [searchParams] = useSearchParams();
+  const prefilledProjectId = searchParams.get('projectId') || '';
+
   const isEdit = Boolean(id);
   const [activeStep, setActiveStep] = useState(0);
 
   const [formData, setFormData] = useState({
     invoiceNumber: '',
-    projectId: '',
+    projectId: prefilledProjectId,
     clientId: '',
     status: 'draft' as InvoiceStatus,
     issueDate: new Date(),

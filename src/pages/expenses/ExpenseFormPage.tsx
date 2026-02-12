@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   Box,
   Grid,
@@ -72,12 +72,18 @@ const initialFormData: FormData = {
 
 const ExpenseFormPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  const prefilledProjectId = searchParams.get('projectId') || '';
+
   const isEdit = Boolean(id);
   const navigate = useNavigate();
   const { showSuccess, showError } = useNotification();
   const { userData } = useAuth();
 
-  const [formData, setFormData] = useState<FormData>(initialFormData);
+  const [formData, setFormData] = useState<FormData>({
+    ...initialFormData,
+    projectId: prefilledProjectId,
+  });
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -88,7 +94,16 @@ const ExpenseFormPage: React.FC = () => {
       try {
         // Fetch projects
         const projectResult = await projectService.getAll();
-        setProjects(projectResult.projects.map(p => ({ id: p.id, name: p.name })));
+        const projectList = projectResult.projects.map(p => ({ id: p.id, name: p.name }));
+        setProjects(projectList);
+
+        // Pre-fill project name if projectId came from URL
+        if (prefilledProjectId && !isEdit) {
+          const matched = projectList.find(p => p.id === prefilledProjectId);
+          if (matched) {
+            setFormData(prev => ({ ...prev, projectName: matched.name }));
+          }
+        }
 
         // Fetch expense if editing
         if (isEdit && id) {
