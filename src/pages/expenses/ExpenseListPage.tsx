@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Box,
@@ -188,6 +188,24 @@ const ExpenseListPage: React.FC = () => {
     return option?.labelEn || status;
   };
 
+  // Financial summary for filtered expenses
+  const expenseSummary = useMemo(() => {
+    const total = filteredExpenses.reduce((sum, e) => sum + e.totalAmount, 0);
+    const approved = filteredExpenses
+      .filter(e => e.status === 'approved')
+      .reduce((sum, e) => sum + e.totalAmount, 0);
+    const pending = filteredExpenses
+      .filter(e => e.status === 'submitted')
+      .reduce((sum, e) => sum + e.totalAmount, 0);
+    const draft = filteredExpenses
+      .filter(e => e.status === 'draft')
+      .reduce((sum, e) => sum + e.totalAmount, 0);
+    const approvedCount = filteredExpenses.filter(e => e.status === 'approved').length;
+    const pendingCount = filteredExpenses.filter(e => e.status === 'submitted').length;
+    const draftCount = filteredExpenses.filter(e => e.status === 'draft').length;
+    return { total, approved, pending, draft, approvedCount, pendingCount, draftCount };
+  }, [filteredExpenses]);
+
   if (loading) return <LoadingSpinner />;
 
   // Mobile card view
@@ -317,6 +335,64 @@ const ExpenseListPage: React.FC = () => {
           </Grid>
         </CardContent>
       </Card>
+
+      {/* Financial Summary */}
+      {filteredExpenses.length > 0 && (
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          <Grid size={{ xs: 6, sm: 3 }}>
+            <Card>
+              <CardContent sx={{ py: 2, px: 2, '&:last-child': { pb: 2 } }}>
+                <Typography variant="caption" color="text.secondary">Total Expenses</Typography>
+                <Typography variant="h6" fontWeight={600}>
+                  {formatCurrency(expenseSummary.total)}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {filteredExpenses.length} expense{filteredExpenses.length !== 1 ? 's' : ''}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid size={{ xs: 6, sm: 3 }}>
+            <Card>
+              <CardContent sx={{ py: 2, px: 2, '&:last-child': { pb: 2 } }}>
+                <Typography variant="caption" color="text.secondary">Approved</Typography>
+                <Typography variant="h6" fontWeight={600} color="success.main">
+                  {formatCurrency(expenseSummary.approved)}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {expenseSummary.approvedCount} expense{expenseSummary.approvedCount !== 1 ? 's' : ''}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid size={{ xs: 6, sm: 3 }}>
+            <Card>
+              <CardContent sx={{ py: 2, px: 2, '&:last-child': { pb: 2 } }}>
+                <Typography variant="caption" color="text.secondary">Pending Approval</Typography>
+                <Typography variant="h6" fontWeight={600} color="info.main">
+                  {formatCurrency(expenseSummary.pending)}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {expenseSummary.pendingCount} expense{expenseSummary.pendingCount !== 1 ? 's' : ''}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid size={{ xs: 6, sm: 3 }}>
+            <Card>
+              <CardContent sx={{ py: 2, px: 2, '&:last-child': { pb: 2 } }}>
+                <Typography variant="caption" color="text.secondary">Draft</Typography>
+                <Typography variant="h6" fontWeight={600} color="text.secondary">
+                  {formatCurrency(expenseSummary.draft)}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {expenseSummary.draftCount} expense{expenseSummary.draftCount !== 1 ? 's' : ''}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      )}
 
       {/* Expense List */}
       {filteredExpenses.length === 0 ? (
